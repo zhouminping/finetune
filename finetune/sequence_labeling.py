@@ -92,7 +92,8 @@ class SequenceLabeler(BaseModel):
                            Providing more than `max_length` tokens as input will result in truncation.
         :returns: np.array of features of shape (n_examples, embedding_size).
         """
-        return self._featurize(X, max_length=max_length)
+        doc_subseqs, _ = indico_to_finetune_sequence(X)
+        return self._featurize(doc_subseqs, max_length=max_length)
 
     def predict_proba(self, X, max_length=None):
         """
