@@ -52,8 +52,8 @@ def featurizer(X, encoder, dropout_placeholder, config, train=False, reuse=None,
         X = tf.reshape(X, [-1, max_length, 2])
 
         h = embed(X, embed_weights)
-        for layer in range(config.n_layer):
-            with tf.variable_scope('h%d_' % layer):
+        for layer, to_train in zip(range(config.n_layer), config.trainable_layers):
+            with tf.variable_scope('h%d_%s' % (layer, "D_N_T" if not to_train else "")):
                 block_fn = functools.partial(block, n_head=config.n_heads, act_fn=config.act_fn,
                                              resid_pdrop=config.resid_p_drop, attn_pdrop=config.attn_p_drop,
                                              scope='h%d' % layer, dropout_placeholder=dropout_placeholder,

@@ -170,7 +170,7 @@ class TextEncoder(object):
             token_start = 0
 
             for token in tokens:
-                bpe_toks = self.bpe(token.text).split()
+                bpe_toks = self.bpe(token.text).split(" ")
                 subtokens.extend(bpe_toks)
                 subtoken_idxs.extend([
                     self.encoder.get(t, self.UNK_IDX)

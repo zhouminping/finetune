@@ -38,6 +38,13 @@ def AdamWeightDecay(params, grads, lr, schedule, t_total, b1=0.9, b2=0.999, e=1e
             grads, _ = tf.clip_by_global_norm(grads, max_grad_norm)
 
         for p, g, ptw, msk in zip_longest(params, grads, pretrained_weights["init_params"], pretrained_weights["mask"]):
+            if p is None:
+                print("Some layer wasnt built, I hope this was on purpose.")
+                continue
+
+            if "D_N_T" in p.name:
+                print("SKIPPING_FIT on {}".format(p.name))
+                continue
 
             if g is None:
                 print("can't train", p.name, g)
