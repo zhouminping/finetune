@@ -143,9 +143,6 @@ class BaseModel(object, metaclass=ABCMeta):
         }
 
     def finetune(self, *Xs, Y=None, batch_size=None):
-        if len(Xs) > 1 and Y is None:
-            Y = Xs[-1]
-            Xs = Xs[:-1]
         fit_language_model_only = (Y is None)
         arr_encoded = self._text_to_ids(*Xs)
         labels = None if fit_language_model_only else Y
@@ -400,7 +397,8 @@ class BaseModel(object, metaclass=ABCMeta):
             b2=self.config.b2,
             e=self.config.epsilon,
             pretrained_weights=initial_params,
-            deviation_regularization=self.config.regularize_deviation
+            deviation_regularization=self.config.regularize_deviation,
+            config=self.config
         )
 
     def _construct_graph(self, n_updates_total, target_dim=None, train=True, pre_trained_weights=None):
@@ -628,7 +626,15 @@ class BaseModel(object, metaclass=ABCMeta):
         """ Load pre-trained weights into the tensors """
         pretrained_params = find_trainable_variables("model", exclude="model/target")
         self.sess.run(tf.global_variables_initializer())
-        self.sess.run([p.assign(ip) for p, ip in zip(pretrained_params, init_params)])
+        ops = []
+        for p, ip in zip(pretrained_params, init_params):
+            if "we" in p.name and self.config.init_embeddings_from_file is not None:
+                print("Loading embeddings from file.")
+                ops.append(p.assign(np.load(self.config.init_embeddings_from_file)))
+            else:
+                ops.append(p.assign(ip))
+
+        self.sess.run(ops)
 
     def __getstate__(self):
         """

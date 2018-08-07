@@ -113,7 +113,10 @@ def get_default_config():
         soft_device_placement=True,
 
         # Experimental
-        trainable_layers=[False]*2
+        trainable_layers=[True] * 12,
+        trainable_old_embeddings=True,
+        trainable_new_embeddings=True,
+        init_embeddings_from_file = None
     )
 
 

@@ -25,7 +25,7 @@ schedules = {
 }
 
 
-def AdamWeightDecay(params, grads, lr, schedule, t_total, b1=0.9, b2=0.999, e=1e-8, l2=0, vector_l2=False, max_grad_norm=-1, pretrained_weights=None, deviation_regularization=0, **kwargs):
+def AdamWeightDecay(params, grads, lr, schedule, t_total, b1=0.9, b2=0.999, e=1e-8, l2=0, vector_l2=False, max_grad_norm=-1, pretrained_weights=None, deviation_regularization=0, config=None, **kwargs):
     """
     Adam with weight decay fix and added weight decay to pre-trained weights.
     """
@@ -45,6 +45,10 @@ def AdamWeightDecay(params, grads, lr, schedule, t_total, b1=0.9, b2=0.999, e=1e
             if "D_N_T" in p.name:
                 print("SKIPPING_FIT on {}".format(p.name))
                 continue
+
+            if "/we" in p.name:
+                if not config.trainable_old_embeddings and not config.trainable_new_embeddings:
+                    continue
 
             if g is None:
                 print("can't train", p.name, g)
@@ -68,6 +72,12 @@ def AdamWeightDecay(params, grads, lr, schedule, t_total, b1=0.9, b2=0.999, e=1e
 
                 if ptw is not None and deviation_regularization > 0:
                     update_vec += deviation_regularization * (msk * (p - ptw) + (1 - msk) * p)
+
+                if "/we" in p.name:
+                    if not config.trainable_old_embeddings:
+                        update_vec *= (1 - msk)
+                    if not config.trainable_new_embeddings:
+                        update_vec *= (msk)
 
                 pt = p - lrt * update_vec
 
