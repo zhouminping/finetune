@@ -4,6 +4,34 @@ from finetune.base import BaseModel
 from finetune.target_encoders import OneHotLabelEncoder
 from finetune.network_modules import classifier
 
+from collections import Counter, defaultdict
+import random
+import numpy as np
+
+
+def resample(X, y, max_ratio=50):
+    X, y = np.asarray(X), np.asarray(y)
+    class_counts = Counter(y)
+    max_count = max(class_counts.values())
+    desired_counts = {
+        class_name: min(
+            max_count, max_ratio * class_count)
+        for class_name, class_count in class_counts.items()
+    }
+
+    idxs_by_y = defaultdict(list)
+    for i, element in enumerate(y):
+        idxs_by_y[element].append(i)
+
+    idx_sample = []
+    for class_name in class_counts:
+        sample_idxs = np.random.choice(idxs_by_y[class_name], desired_counts[class_name], replace=True).tolist()
+        idx_sample.extend(sample_idxs)
+
+    random.shuffle(idx_sample)
+
+    return X[idx_sample].tolist(), y[idx_sample].tolist()
+
 
 class Classifier(BaseModel):
     """ 
@@ -54,6 +82,7 @@ class Classifier(BaseModel):
         :param batch_size: integer number of examples per batch. When N_GPUS > 1, this number
                            corresponds to the number of training examples provided to each GPU.
         """
+        X, Y = resample(X, Y)
         return super().finetune(X, Y=Y, batch_size=batch_size)
 
     def _target_encoder(self):
