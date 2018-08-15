@@ -65,6 +65,7 @@ def get_default_config():
         n_epochs=3,
         seed=42,
         max_length=512,
+        reduce_states="final",
         # INITIALIZATION
         weight_stddev=0.02,
 
