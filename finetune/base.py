@@ -481,6 +481,54 @@ class BaseModel(object, metaclass=ABCMeta):
             deviation_regularization=self.config.regularize_deviation
         )
 
+    def model_body(self, X, M, Y, target_dim, train, do_reuse, compile_lm):
+        featurizer_state = featurizer(
+            X,
+            config=self.config,
+            encoder=self.encoder,
+            dropout_placeholder=self.do_dropout,
+            train=train,
+            reuse=do_reuse
+        )
+
+        if compile_lm:
+            language_model_state = language_model(
+                X=X,
+                M=M,
+                config=self.config,
+                embed_weights=featurizer_state['embed_weights'],
+                hidden=featurizer_state['sequence_features'],
+                reuse=do_reuse
+            )
+        else:
+            language_model_state = None
+
+        if target_dim is not None:
+
+            weighted_tensor = None
+            if self.config.class_weights is not None:
+                weighted_tensor = class_weight_tensor(
+                    class_weights=self.config.class_weights,
+                    target_dim=target_dim,
+                    label_encoder=self.label_encoder
+                )
+
+            with tf.variable_scope('model/target'):
+                target_model_config = {
+                    'featurizer_state': featurizer_state,
+                    'targets': Y,
+                    'n_outputs': target_dim,
+                    'train': train,
+                    'reuse': do_reuse,
+                    'max_length': self.config.max_length,
+                    'class_weights': weighted_tensor
+                }
+                target_model_state = self._target_model(**target_model_config)
+        else:
+            target_model_state = None
+
+        return featurizer_state, language_model_state, target_model_state
+
     def _construct_graph(self, n_updates_total, target_dim=None, train=True):
         gpu_grads = []
         self.summaries = []
@@ -517,25 +565,13 @@ class BaseModel(object, metaclass=ABCMeta):
             scope = tf.variable_scope(tf.get_variable_scope(), reuse=do_reuse)
 
             with device, scope:
-                featurizer_state = featurizer(
-                    X,
-                    config=self.config,
-                    encoder=self.encoder,
-                    dropout_placeholder=self.do_dropout,
-                    train=train,
-                    reuse=do_reuse
-                )
+                featurizer_state, language_model_state, target_model_state = self.model_body(X=X, M=M, Y=Y,
+                                                                                             target_dim=target_dim,
+                                                                                             train=train,
+                                                                                             do_reuse=do_reuse,
+                                                                                             compile_lm=compile_lm)
 
-                if compile_lm:
-                    language_model_state = language_model(
-                        X=X,
-                        M=M,
-                        config=self.config,
-                        embed_weights=featurizer_state['embed_weights'],
-                        hidden=featurizer_state['sequence_features'],
-                        reuse=do_reuse
-                    )
-
+                if language_model_state is not None:
                     train_loss = lm_loss_coef * tf.reduce_mean(language_model_state['losses'])
                     aggregator['lm_losses'].append(language_model_state['losses'])
                     lm_logits = language_model_state["logits"]
@@ -555,27 +591,7 @@ class BaseModel(object, metaclass=ABCMeta):
 
                 aggregator['features'].append(featurizer_state['features'])
 
-                if target_dim is not None:
-
-                    weighted_tensor = None
-                    if self.config.class_weights is not None:
-                        weighted_tensor = class_weight_tensor(
-                            class_weights=self.config.class_weights,
-                            target_dim=target_dim,
-                            label_encoder=self.label_encoder
-                        )
-
-                    with tf.variable_scope('model/target'):
-                        target_model_config = {
-                            'featurizer_state': featurizer_state,
-                            'targets': Y,
-                            'n_outputs': target_dim,
-                            'train': train,
-                            'reuse': do_reuse,
-                            'max_length': self.config.max_length,
-                            'class_weights': weighted_tensor
-                        }
-                        target_model_state = self._target_model(**target_model_config)
+                if target_model_state is not None:
                     train_loss += (1 - lm_loss_coef) * tf.reduce_mean(target_model_state['losses'])
                     train_loss_tower += train_loss
 
