@@ -14,7 +14,7 @@ class ReweightingMixin:
 
     def model_body(self, X, M, Y, target_dim, train, do_reuse, compile_lm):
         encoded_gold_y = self.label_encoder.transform(self.goldY)
-        num_batches = len(encoded_gold_y)//self.config.batch_size
+        num_batches = len(encoded_gold_y)//self.config.batch_size + (1 if len(encoded_gold_y)%self.config.batch_size != 0 else 0)
 
         g_split_x = np.array_split(self.goldX, num_batches)
         g_split_m = np.array_split(self.goldM, num_batches)
