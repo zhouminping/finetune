@@ -8,7 +8,6 @@ from setuptools import setup, find_packages
 
 REQUIREMENTS = [
     "pandas>=0.23.1",
-    "IndicoIo>=1.1.5",
     "tqdm>=4.0.0",
     "numpy>=1.13.0",
     "scipy>=1.1.0",
@@ -25,7 +24,11 @@ REQUIREMENTS = [
 setup(
     name="finetune",
     packages=find_packages(),
-    version="0.5.10",
+    version="0.5.11",
     install_requires=REQUIREMENTS,
+    extras_require={
+        "tf": ["tensorflow>=1.11.0"],
+        "tf_gpu": ["tensorflow-gpu>=1.11.0"],
+    },
     include_package_data=False
 )
