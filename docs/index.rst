@@ -122,7 +122,7 @@ use the :py:func:`model.cached_predict()` context manager.
     model.fit(train_data, train_labels)
     with model.cached_predict():
         model.predict(test_data) # triggers prediction graph construction
-        model.predict(test_data) # graph is already cached, so subsequence calls are faster
+        model.predict(test_data) # graph is already cached, so subsequent calls are faster
 
 
 Code Examples
