@@ -198,6 +198,7 @@ def get_default_config():
         min_secs_between_eval=60,
         log_device_placement=False,
         soft_device_placement=True,
+        allow_gpu_growth=True,
         save_adam_vars=True,
         num_layers_trained=12,
         train_embeddings=True,

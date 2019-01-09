@@ -134,6 +134,9 @@ class BasePipeline(metaclass=ABCMeta):
         """
         Auto-select reasonable validation settings
         """
+        if self.config.val_set is not None:
+            self.config.val_size = len(self.config.val_set[0])
+        
         if self.config.val_size is not None and self.config.val_interval is not None:
             return self._integer_val_size(self.config.val_size), self.config.val_interval
 
@@ -243,6 +246,7 @@ class BasePipeline(metaclass=ABCMeta):
             else:
                 Xs_tr, Y_tr = Xs, Y
                 Xs_va, Y_va = self.config.val_set
+                self.config.val_size = len(Xs_va)
                 
             Xs_tr, Y_tr = self.resampling(Xs_tr, Y_tr)
             self.config.dataset_size = len(Xs_tr)

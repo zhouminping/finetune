@@ -182,6 +182,7 @@ class BaseModel(object, metaclass=ABCMeta):
             allow_soft_placement=self.config.soft_device_placement,
             log_device_placement=self.config.log_device_placement,
         )
+        conf.gpu_options.allow_growth = self.config.allow_gpu_growth
         num_gpus = len(self.config.visible_gpus)
         if num_gpus > 1:
             distribute_strategy = PatchedParameterServerStrategy(num_gpus_per_worker=num_gpus)
