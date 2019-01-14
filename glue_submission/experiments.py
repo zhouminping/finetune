@@ -164,7 +164,7 @@ def QQP_train(data_folder, output_folder, gpu_num):
     #Eval                                                                                                                                                                            
     dev_pred = model.predict(dev_X)
     print("\n\n\nQQP accuracy: {}\n\n\n".format(np.mean(dev_Y == dev_pred)))
-    print("\n\n\nQQP F1: {}\n\n\n".format(f1_score(dev_Y, dev_pred)))
+#    print("\n\n\nQQP F1: {}\n\n\n".format(f1_score(dev_Y, dev_pred)))
     model.save("QQP_glue.jl")
 
     
@@ -191,7 +191,7 @@ def MNLI_train(data_folder, output_folder, gpu_num):
 
     test_dataframe_matched = pd.read_csv(os.path.join(data_folder, "test_matched.tsv"), sep="\t", quoting=3).astype(str)
     test_dataframe_mismatched = pd.read_csv(os.path.join(data_folder, "test_mismatched.tsv"), sep="\t", quoting=3).astype(str)
-    test_dataframe_diagnostic = pd.read_csv(os.path.join(data_folder, "../diagnotic/diagnostic.tsv"), sep="\t", quoting=3).astype(str)
+    test_dataframe_diagnostic = pd.read_csv(os.path.join(data_folder, "../diagnostic/diagnostic.tsv"), sep="\t", quoting=3).astype(str)
 
     for test_dataframe, output_file in [
             (test_dataframe_matched, output_file_matched),
