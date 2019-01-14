@@ -21,24 +21,37 @@ def estimate_max_len(train_X):
             s = sample
         lens.append(len(s.split(" ")) * BPE_LEN_FACTOR)
     return int(min(MAX_LEN, max(lens)))
-    
+
 
 def COLA_train(data_folder, output_folder, gpu_num):
     col_names_train = ["id", "target", "na2", "text"]
     data_folder += "/CoLA"
-    
+
     output_file = os.path.join(output_folder, "CoLA.tsv")
 
     if os.path.exists(output_file):
         return
- 
- 
+
+
     train_dataframe = pd.read_csv(os.path.join(data_folder, "train.tsv"), sep="\t", names=col_names_train)
     dev_dataframe = pd.read_csv(os.path.join(data_folder, "dev.tsv"), sep="\t", names=col_names_train)
     dev_X, dev_Y = dev_dataframe.text.values, dev_dataframe.target.values
     train_X, train_Y = train_dataframe.text.values, train_dataframe.target.values
     max_len = estimate_max_len(train_X)
-    model = Classifier(low_memory_mode=True, batch_size=32, base_model_path="SummariesBase.jl", n_epochs=5, keep_best_model=True, val_set=(dev_X, dev_Y), visible_gpus=[gpu_num], max_length=max_len)
+    model = Classifier(
+        lr=6.25e-5,
+        lm_coef=0.1,
+        low_memory_mode=True,
+        max_grad_norm=4.5,
+        batch_size=32,
+        val_interval=50,
+        base_model_path="SummariesBase.jl",
+        n_epochs=5,
+        keep_best_model=True,
+        val_set=(dev_X, dev_Y),
+        visible_gpus=[gpu_num],
+        max_length=max_len
+    )
     model.fit(train_X, train_Y)
 
     test_dataframe = pd.read_csv(os.path.join(data_folder, "test.tsv"), sep="\t")
@@ -50,7 +63,7 @@ def COLA_train(data_folder, output_folder, gpu_num):
     #Eval
     dev_pred = model.predict(dev_X)
     print("\n\n\nCola Matthews Corr: {}\n\n\n".format(matthews_corrcoef(dev_Y, dev_pred)))
-        
+
     model.save("cola_glue.jl")
 
 def SST_train(data_folder, output_folder, gpu_num):
@@ -61,10 +74,10 @@ def SST_train(data_folder, output_folder, gpu_num):
 
     train_dataframe = pd.read_csv(os.path.join(data_folder, "train.tsv"), sep="\t",quoting=3)
     dev_dataframe = pd.read_csv(os.path.join(data_folder, "dev.tsv"), sep="\t",quoting=3)
-    
+
     dev_X, dev_Y = dev_dataframe.sentence.values, dev_dataframe.label.values
     train_X, train_Y = train_dataframe.sentence.values, train_dataframe.label.values
-    
+
     model = Classifier(low_memory_mode=True, batch_size=32, base_model_path="SummariesBase.jl", n_epochs=5, keep_best_model=True, val_set=(dev_X, dev_Y), visible_gpus=[gpu_num], max_length=estimate_max_len(train_X))
 
     model.fit(train_X, train_Y)
@@ -75,13 +88,13 @@ def SST_train(data_folder, output_folder, gpu_num):
     test_pred = model.predict(test_text)
     pd.DataFrame(dict(id=test_i, label=test_pred)).to_csv(output_file, sep="\t", index=False)
 
-    #Eval                                                                                                                                                                            
+    #Eval
     dev_pred = model.predict(dev_X)
     print("\n\n\nSST-2 accuracy: {}\n\n\n".format(np.mean(dev_Y == dev_pred)))
 
     model.save("sst_glue.jl")
 
-          
+
 def MRPC_train(data_folder, output_folder, gpu_num):
     data_folder += "/MRPC"
     output_file = os.path.join(output_folder, "MRPC.tsv")
@@ -92,7 +105,7 @@ def MRPC_train(data_folder, output_folder, gpu_num):
     dev_dataframe = pd.read_csv(os.path.join(data_folder, "dev.tsv"), sep="\t", quoting=3)
 
     dev_X, dev_Y = list(zip(dev_dataframe["#1 String"].values, dev_dataframe["#2 String"].values)), dev_dataframe.Quality.values
-    
+
     train_X, train_Y = list(zip(train_dataframe["#1 String"].values,train_dataframe["#2 String"].values)), train_dataframe.Quality.values
     for x in train_X:
         if type(x[0]) != str or type(x[1]) != str:
@@ -108,7 +121,7 @@ def MRPC_train(data_folder, output_folder, gpu_num):
     test_pred = model.predict(test_text)
     pd.DataFrame(dict(id=test_i, label=test_pred)).to_csv(output_file, sep="\t", index=False)
 
-    #Eval                                                                                                                                                                                     
+    #Eval
     dev_pred = model.predict(dev_X)
     print("\n\n\nMRPC accuracy: {}\n\n\n".format(np.mean(dev_Y == dev_pred)))
     print("\n\n\nMRPC F1: {}\n\n\n".format(f1_score(dev_Y, dev_pred)))
@@ -161,13 +174,13 @@ def QQP_train(data_folder, output_folder, gpu_num):
     test_text = list(zip(test_dataframe.question1.values, test_dataframe.question2.values))
     test_pred = model.predict(test_text)
     pd.DataFrame(dict(id=test_i, label=test_pred)).to_csv(output_file, sep="\t", index=False)
-    #Eval                                                                                                                                                                            
+    #Eval
     dev_pred = model.predict(dev_X)
     print("\n\n\nQQP accuracy: {}\n\n\n".format(np.mean(dev_Y == dev_pred)))
 #    print("\n\n\nQQP F1: {}\n\n\n".format(f1_score(dev_Y, dev_pred)))
     model.save("QQP_glue.jl")
 
-    
+
 def MNLI_train(data_folder, output_folder, gpu_num):
     data_folder += "/MNLI"
     output_file_matched = os.path.join(output_folder, "MNLI-m.tsv")
@@ -202,9 +215,9 @@ def MNLI_train(data_folder, output_folder, gpu_num):
         test_text = list(zip(test_dataframe.sentence1.values, test_dataframe.sentence2.values))
         test_pred = model.predict(test_text)
         pd.DataFrame(dict(id=test_i, label=test_pred)).to_csv(output_file, sep="\t", index=False)
-    
+
     #Eval                                                                                                                                                                           \
-                                                                                                                                                                                     
+
     dev_pred = model.predict(dev_X)
     print("\n\n\nMNLI accuracy: {}\n\n\n".format(np.mean(dev_Y == dev_pred)))
     model.save("MNLI_glue.jl")
@@ -234,7 +247,7 @@ def QNLI_train(data_folder, output_folder, gpu_num):
     pd.DataFrame(dict(id=test_i, label=test_pred)).to_csv(output_file, sep="\t", index=False)
 
     #Eval
-                                                                                                                                                                                  
+
     dev_pred = model.predict(dev_X)
     print("\n\n\nQNLI accuracy: {}\n\n\n".format(np.mean(dev_Y == dev_pred)))
     model.save("QNLI_glue.jl")
@@ -261,7 +274,7 @@ def RTE_train(data_folder, output_folder, gpu_num):
     test_pred = model.predict(test_text)
     pd.DataFrame(dict(id=test_i, label=test_pred)).to_csv(output_file, sep="\t", index=False)
 
-    #Eval                                                                                                                                                                           
+    #Eval
 
     dev_pred = model.predict(dev_X)
     print("\n\n\nRTE accuracy: {}\n\n\n".format(np.mean(dev_Y == dev_pred)))
@@ -289,13 +302,13 @@ def WNLI_train(data_folder, output_folder, gpu_num):
     test_pred = model.predict(test_text)
     pd.DataFrame(dict(id=test_i, label=test_pred)).to_csv(output_file, sep="\t", index=False)
 
-    #Eval                                                                                                                                                                           
+    #Eval
 
     dev_pred = model.predict(dev_X)
     print("\n\n\nWNLI accuracy: {}\n\n\n".format(np.mean(dev_Y == dev_pred)))
     model.save("WNLI_glue.jl")
 
-    
+
 def run(fn):
     gpu_map = dict(enumerate(os.environ["CUDA_VISIBLE_DEVICES"].split(",")))
     pool_id = multiprocessing.current_process()._identity[0]
@@ -325,4 +338,4 @@ if __name__=="__main__":
         ]
     ):
         pass
-    
+
