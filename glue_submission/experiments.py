@@ -10,7 +10,7 @@ BPE_LEN_FACTOR = 1.5
 MAX_LEN = 512
 
 DATA_PATH = "~/code/Data/glue_data/"
-SUBMISSION_DIR = "~/code/Data/glue_data/submission"
+SUBMISSION_PATH = "~/code/Data/glue_data/submission"
 
 def estimate_max_len(train_X):
     lens = []
@@ -205,6 +205,7 @@ def MNLI_train(data_folder, output_folder, gpu_num):
     test_dataframe_matched = pd.read_csv(os.path.join(data_folder, "test_matched.tsv"), sep="\t", quoting=3).astype(str)
     test_dataframe_mismatched = pd.read_csv(os.path.join(data_folder, "test_mismatched.tsv"), sep="\t", quoting=3).astype(str)
     test_dataframe_diagnostic = pd.read_csv(os.path.join(data_folder, "../diagnostic/diagnostic.tsv"), sep="\t", quoting=3).astype(str)
+    model.save("MNLI_glue.jl")
 
     for test_dataframe, output_file in [
             (test_dataframe_matched, output_file_matched),
@@ -236,7 +237,20 @@ def QNLI_train(data_folder, output_folder, gpu_num):
     dev_X, dev_Y = list(zip(dev_dataframe.question.values, dev_dataframe.sentence.values)), dev_dataframe.label.values
 
     train_X, train_Y = list(zip(train_dataframe.question.values,train_dataframe.sentence.values)), train_dataframe.label.values
-    model = MultiFieldClassifier(low_memory_mode=True, batch_size=32, base_model_path="SummariesBase.jl", n_epochs=5, keep_best_model=True, val_set=(dev_X, dev_Y), visible_gpus=[gpu_num], max_length=estimate_max_len(train_X))
+    model = MultiFieldClassifier(
+        lr=6.25e-5,
+        lm_coef=0.1,
+	low_memory_mode=True,
+        max_grad_norm=4.5,
+        batch_size=32,
+        val_interval=5000,
+	base_model_path="SummariesBase.jl",
+        n_epochs=5,
+	keep_best_model=True,
+        val_set=(dev_X, dev_Y),
+        visible_gpus=[gpu_num],
+        max_length=estimate_max_len(train_X)
+    )
 
     model.fit(train_X, train_Y)
 
@@ -292,7 +306,7 @@ def WNLI_train(data_folder, output_folder, gpu_num):
     dev_X, dev_Y = list(zip(dev_dataframe.sentence1.values, dev_dataframe.sentence2.values)), dev_dataframe.label.values
 
     train_X, train_Y = list(zip(train_dataframe.sentence1.values,train_dataframe.sentence2.values)), train_dataframe.label.values
-    model = MultiFieldClassifier(low_memory_mode=True, batch_size=32, base_model_path="SummariesBase.jl", n_epochs=5, keep_best_model=True, val_set=(dev_X, dev_Y), visible_gpus=[gpu_num], max_length=estimate_max_len(train_X))
+    model = MultiFieldClassifier(low_memory_mode=True, batch_size=16, base_model_path="SummariesBase.jl", n_epochs=5, keep_best_model=True, val_set=(dev_X, dev_Y), visible_gpus=[gpu_num], max_length=estimate_max_len(train_X))
 
     model.fit(train_X, train_Y)
 
@@ -332,7 +346,7 @@ if __name__=="__main__":
             MNLI_train,
             SST_train,
             COLA_train,
-#            MRPC_train,
+            MRPC_train,
 #            STS_train,
             QQP_train,
         ]
