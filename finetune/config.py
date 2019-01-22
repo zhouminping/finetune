@@ -214,6 +214,7 @@ def get_default_config():
         kernel_width=3,
         use_fp16=True,
         use_timing=False,
+        scale_loss=True,
 
         # Must remain fixed
         n_heads=12,
