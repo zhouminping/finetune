@@ -209,6 +209,12 @@ def get_default_config():
         regression_loss="L2",
         prefit_init=False,
 
+        # For experimental conv model
+        use_conv=False,
+        kernel_width=3,
+        use_fp16=True,
+        use_timing=False,
+
         # Must remain fixed
         n_heads=12,
         n_layer=12,

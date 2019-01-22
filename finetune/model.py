@@ -10,8 +10,10 @@ from finetune.network_modules import featurizer, language_model
 from finetune.utils import sample_with_temperature
 from finetune.optimizers import schedules
 from finetune.imbalance import class_weight_tensor
+from finetune.convolutional import featurizer as conv_featurizer
 
 LOGGER = logging.getLogger('finetune')
+
 
 class PredictMode:
     FEATURIZE = "FEAT"
@@ -83,7 +85,11 @@ def get_model_fn(target_model_fn, predict_op, predict_proba_op, build_target_mod
 
         with tf.variable_scope(tf.get_variable_scope()):
             train_loss = 0.0
-            featurizer_state = featurizer(X, config=params, encoder=encoder, train=train)
+            if params.use_conv:
+                featurizer_state = conv_featurizer(X, config=params, encoder=encoder, train=train)
+            else:
+                featurizer_state = featurizer(X, config=params, encoder=encoder, train=train)
+
             predictions = {PredictMode.FEATURIZE: featurizer_state["features"]}
 
             if build_target_model:
@@ -117,7 +123,7 @@ def get_model_fn(target_model_fn, predict_op, predict_proba_op, build_target_mod
                     predictions[PredictMode.GENERATE_TEXT] = lm_predict_op
 
         if mode == tf.estimator.ModeKeys.TRAIN:
-            total_num_steps = params.n_epochs * params.dataset_size//params.batch_size
+            total_num_steps = params.n_epochs * params.dataset_size // params.batch_size
             lr_decay = lambda lr, global_step: lr * schedules[params.lr_schedule](
                 tf.to_float(global_step) / total_num_steps
             )
@@ -132,6 +138,17 @@ def get_model_fn(target_model_fn, predict_op, predict_proba_op, build_target_mod
                 )
                 decay_var_list = [v for v in tf.global_variables() if len(v.get_shape()) > 1 or params.vector_l2]
                 opt.apply_gradients = functools.partial(opt.apply_gradients, decay_var_list=decay_var_list)
+
+                if params.scale_loss:
+                    loss_scale_manager = tf.contrib.mixed_precision.ExponentialUpdateLossScaleManager(
+                        init_loss_scale=2 ** 15,
+                        incr_every_n_steps=2000,
+                        decr_every_n_nan_or_inf=2,
+                        incr_ratio=2,
+                        decr_ratio=0.5
+                    )  # params taken from fb transformer paper.
+                    opt = tf.contrib.mixed_precision.LossScaleOptimizer(opt, loss_scale_manager)
+
                 return opt
 
             summaries = tf.contrib.layers.OPTIMIZER_SUMMARIES if params.summarize_grads else None
@@ -164,7 +181,7 @@ def get_model_fn(target_model_fn, predict_op, predict_proba_op, build_target_mod
             LOGGER.info("Adding evaluation metrics, Accuracy")
             labels_dense = tf.argmax(labels)
             metrics = {
-                "Accuracy":  tf.metrics.accuracy(pred_op, labels_dense)
+                "Accuracy": tf.metrics.accuracy(pred_op, labels_dense)
             }
         else:
             metrics = None

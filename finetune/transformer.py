@@ -126,3 +126,7 @@ def embed(X, we):
     #    h = add_timing_signal_1d(e[:, :, 0])
     h = tf.reduce_sum(e, 2)
     return h
+
+
+def embed_no_timing(X, we):
+    return tf.gather(we, X[:, :, 0])
