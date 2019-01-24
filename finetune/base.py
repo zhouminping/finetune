@@ -163,7 +163,7 @@ class BaseModel(object, metaclass=ABCMeta):
         )
         num_steps = steps_per_epoch * self.config.n_epochs
         estimator = self.get_estimator()
-        train_hooks = [
+        eval_hooks = [
             self.saver.get_saver_hook(
                 estimator=estimator,
                 keep_best_model=self.config.keep_best_model,
@@ -171,12 +171,12 @@ class BaseModel(object, metaclass=ABCMeta):
                 early_stopping_steps=self.config.early_stopping_steps,
                 eval_frequency=val_interval
             ),
-
         ]
+        train_hooks = []
         if val_size > 0:
             train_hooks.append(
                 tf.contrib.estimator.InMemoryEvaluatorHook(
-                    estimator, val_input_fn, every_n_iter=val_interval, steps=val_size // batch_size
+                    estimator, val_input_fn, every_n_iter=val_interval, steps=val_size // batch_size, hooks=eval_hooks
                 )
             )
 
