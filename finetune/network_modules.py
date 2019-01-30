@@ -110,16 +110,11 @@ def language_model(*, X, M, embed_weights, hidden, config, reuse=None):
         sliced_hidden = hidden[:, :-1]
         lm_h = tf.reshape(sliced_hidden, [-1, config.n_embed])  # [batch, seq_len, embed] --> [batch * seq_len, embed]
         lm_logits = tf.matmul(lm_h, embed_weights, transpose_b=True)  # tied weights
-        lm_losses = tf.nn.sparse_softmax_cross_entropy_with_logits(
+        lm_losses = tf.losses.sparse_softmax_cross_entropy(
             logits=lm_logits,
-            labels=tf.reshape(X[:, 1:, 0], [-1])
+            labels=tf.reshape(X[:, 1:, 0], [-1]),
+            weights=tf.reshape(M[:, 1:], [-1])
         )
-
-        lm_losses = tf.reshape(lm_losses, [shape_list(X)[0], shape_list(X)[1] - 1])
-
-        # tf.maximum op prevents divide by zero error when mask is all 0s
-        lm_losses = tf.reduce_sum(lm_losses * M[:, 1:], 1) / tf.maximum(tf.reduce_sum(M[:, 1:], 1), 1)
-
         lm_logits_shape = shape_list(lm_logits)
         sliced_hidden_shape = shape_list(sliced_hidden)
         return {

@@ -212,9 +212,9 @@ def get_default_config():
         # For experimental conv model
         use_conv=False,
         kernel_width=3,
-        use_fp16=False,
+        use_fp16=True,
         use_timing=False,
-        scale_loss=False,
+        scale_loss=True, 
 
         # Must remain fixed
         n_heads=12,
