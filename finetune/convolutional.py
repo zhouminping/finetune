@@ -60,6 +60,16 @@ def block(X, kernel_width, block_name, use_fp16):
         h1 = gated_linear_unit(h0, kernel_width, "1",use_fp16)
         h2 = gated_linear_unit(h1, kernel_width, "2",use_fp16)
         h3 = gated_linear_unit(h2, kernel_width, "3",use_fp16)
+        _, seq, nx = shape_list(X)
+        r = tf.reshape(tf.range(1.0, seq + 1.0, dtype=tf.float32), [1, seq, 1])
+        W = tf.get_variable(name="W", shape=[1, nx * 2, nx])
+        b = tf.get_variable(name="B", shape=[nx])
+        if use_fp16:
+            W = tf.cast(W, tf.float16)
+            b = tf.cast(b, tf.float16)
+            r = tf.cast(r, tf.float16)
+        sum_context = tf.cumsum(h3, axis=1) / r
+        h3 = tf.nn.bias_add(tf.nn.conv1d(tf.concat([sum_context, h3], axis=-1) , W, stride=1, padding="VALID", name="conv"), b)
         h4 = gated_linear_unit(h3, kernel_width, "4",use_fp16, h0)
     return h4
 

@@ -109,8 +109,12 @@ def get_model_fn(target_model_fn, predict_op, predict_proba_op, build_target_mod
                     else:
                         pred_proba_op = predict_proba_op(logits, **predict_params)
 
-                    predictions[PredictMode.NORMAL] = pred_op
-                    predictions[PredictMode.PROBAS] = pred_proba_op
+                    if type(pred_op) == dict:
+                        predictions.update(pred_op)
+                        predictions.update(pred_proba_op)
+                    else:
+                        predictions[PredictMode.NORMAL] = pred_op
+                        predictions[PredictMode.PROBAS] = pred_proba_op
 
             if build_lm:
                 lm_predict_op, language_model_state = language_model_op(X=X, M=M, params=params,
@@ -144,9 +148,11 @@ def get_model_fn(target_model_fn, predict_op, predict_proba_op, build_target_mod
                         init_loss_scale=10,
                         incr_every_n_steps=5000,
                         decr_every_n_nan_or_inf=2,
-                        incr_ratio=1.8,
+                        incr_ratio=1.1,
                         decr_ratio=0.3
                     )
+
+#                    loss_scale_manager = tf.contrib.mixed_precision.FixedLossScaleManager(5000)
                     
                     opt = tf.contrib.mixed_precision.LossScaleOptimizer(opt, loss_scale_manager)
                     tf.summary.scalar("loss_scale", loss_scale_manager.get_loss_scale())

@@ -168,6 +168,9 @@ class BasePipeline(metaclass=ABCMeta):
         return dataset
 
     def wrap_tqdm(self, gen, train):
+        if self.config.debugging_logs:
+            return gen
+
         if train is None:
             return gen
 
@@ -245,7 +248,6 @@ class BasePipeline(metaclass=ABCMeta):
             Xs_tr, Y_tr = self.resampling(Xs_tr, Y_tr)
             self.config.dataset_size = len(Xs_tr)
             val_dataset_unbatched = self._make_dataset(Xs_va, Y_va, train=False)
-
             train_dataset_unbatched = self._make_dataset(Xs_tr, Y_tr, train=True)
 
         if self.config.chunk_long_sequences:
