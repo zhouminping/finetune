@@ -32,6 +32,7 @@ from finetune.errors import FinetuneError
 from finetune.model import get_model_fn, PredictMode
 from finetune.download import download_data_if_required
 from finetune.estimator_utils import PatchedParameterServerStrategy
+from finetune.in_memory_finetune import InMemoryFinetune
 
 JL_BASE = os.path.join(os.path.dirname(__file__), "model", "Base_model.jl")
 LOGGER = logging.getLogger('finetune')
@@ -178,9 +179,23 @@ class BaseModel(object, metaclass=ABCMeta):
         if val_size > 0:
             train_hooks.append(
                 tf.contrib.estimator.InMemoryEvaluatorHook(
-                    estimator, val_input_fn, every_n_iter=val_interval, steps=val_size // batch_size
+                    estimator, val_input_fn, every_n_iter=val_interval#, steps=max(val_size // batch_size, 1)
                 )
             )
+
+        if self.config.in_memory_finetune is not None:
+            for f in self.config.in_memory_finetune:
+                train_hooks.append(InMemoryFinetune(
+                    config_to_eval=f["config"],
+                    finetune=self,
+                    eval_dir=estimator.eval_dir(),
+                    X=f["X"],
+                    Y=f["Y"],
+                    X_test=f["X_test"],
+                    Y_test=f["Y_test"],
+                    name=f["name"],
+                    every_n_iter=f["every_n_iter"]
+                ))
 
         with warnings.catch_warnings():
             warnings.simplefilter("ignore")
