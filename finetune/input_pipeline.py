@@ -196,7 +196,7 @@ class BasePipeline(metaclass=ABCMeta):
             for _, i in zip(range(self._skip_tqdm), it):
                 yield i
 
-            for i in tqdm.tqdm(it, desc=desc, total=total, miniters=1, leave=current_epoch  == self.config.n_epochs and train):
+            for i in tqdm.tqdm(it, desc=desc, total=total, miniters=1, leave=current_epoch == self.config.n_epochs and train):
                 yield i
             
             if train:
