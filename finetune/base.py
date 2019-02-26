@@ -167,7 +167,7 @@ class BaseModel(object, metaclass=ABCMeta):
         estimator = self.get_estimator()
 
         steps_per_epoch = self._n_steps(
-            n_examples=self.config.dataset_size,
+            n_examples=self.input_pipeline.dataset_size,
             batch_size=batch_size,
             n_gpus=max(1, len(self.resolved_gpus))
         )

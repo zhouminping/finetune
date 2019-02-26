@@ -16,6 +16,15 @@ TASK_TYPES = {
 
 
 class MultiTaskPipeline(BasePipeline):
+
+    def __init__(self, *args, **kwargs):
+        super(MultiTaskPipeline, self).__init__(*args, **kwargs)
+        self.dataset_size_ = 0
+
+    @property
+    def dataset_size(self):
+        return self.dataset_size_
+    
     def get_train_input_fns(self, Xs, Y=None, batch_size=None, val_size=None):
         input_funcs = {}
         val_funcs = {}
@@ -30,6 +39,7 @@ class MultiTaskPipeline(BasePipeline):
                 batch_size=batch_size,
                 val_size=val_size
             )
+            self.dataset_size_ += self.config.dataset_size
             (val_funcs[task_name], input_func, val_sizes[task_name], val_intervals[task_name]) = task_tuple
 
             input_funcs[task_name] = lambda: input_func().map(

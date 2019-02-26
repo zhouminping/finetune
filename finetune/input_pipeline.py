@@ -30,6 +30,10 @@ class BasePipeline(metaclass=ABCMeta):
         self.rebuild = False
         self.epoch = 0
 
+    @property
+    def dataset_size(self):
+        return self.config.dataset_size
+
     @abstractmethod
     def _target_encoder(self):
         # Overridden by subclass to produce the right target encoding for a given target model.
